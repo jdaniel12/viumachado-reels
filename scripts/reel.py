@@ -2,6 +2,8 @@
 """Gera o Reel animado do @viumachado (1080x1920, 10s, 30fps) com Pillow + numpy + ffmpeg."""
 import argparse, io, math, os, subprocess, sys, tempfile, urllib.request, wave
 import numpy as np
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import music as trilhas
 from PIL import Image, ImageDraw, ImageFont
 
 W, H, FPS, DUR = 1080, 1920, 30, 10.0
@@ -112,8 +114,8 @@ def main():
             ov = Image.new("RGBA",(W,H),WHITE+(int(255*prog(t,DUR-0.5,DUR)),)); f.alpha_composite(ov)
         f.convert("RGB").save(f"{tmp}/f{i:04d}.jpg", quality=92)
         if a.frames_only and i in (int(x) for x in a.frames_only.split(",")): f.convert("RGB").save(f"/tmp/prev_{i}.png")
-    wav = f"{tmp}/m.wav"; music(wav)
+    wav = f"{tmp}/m.wav"; trilhas.make("lofi", DUR, wav)
     subprocess.check_call(["ffmpeg","-y","-loglevel","error","-framerate",str(FPS),"-i",f"{tmp}/f%04d.jpg","-i",wav,
-        "-c:v","libx264","-preset","medium","-crf","21","-pix_fmt","yuv420p","-c:a","aac","-b:a","160k","-shortest","-movflags","+faststart",a.out])
+        "-c:v","libx264","-preset","medium","-crf","21","-pix_fmt","yuv420p","-af","loudnorm=I=-15:TP=-1.5:LRA=7","-c:a","aac","-b:a","160k","-shortest","-movflags","+faststart",a.out])
 
 if __name__ == "__main__": main()
