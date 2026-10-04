@@ -28,6 +28,10 @@ jobs:
           IMAGE_URL: ${{ inputs.image_url }}
         run: curl -fsSL --retry 3 -o arte.jpg "$IMAGE_URL"
 
+      - name: Instalar ffmpeg
+        run: |
+          command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
       - name: Gerar video (ffmpeg)
         env:
           REEL_ID: ${{ inputs.reel_id }}
