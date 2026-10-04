@@ -3,8 +3,14 @@ name: Gerar Reel
 on:
   workflow_dispatch:
     inputs:
-      image_url:
-        description: "URL publica da arte 9:16 do Story"
+      foto_url:
+        description: "URL publica da foto do produto"
+        required: true
+      desc:
+        description: "Texto do desconto (ex: 72% OFF)"
+        required: true
+      preco:
+        description: "Texto do preco (ex: R$ 54,99)"
         required: true
       reel_id:
         description: "Identificador do Reel (arquivo reels/<id>.mp4)"
@@ -23,29 +29,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Baixar arte
-        env:
-          IMAGE_URL: ${{ inputs.image_url }}
-        run: curl -fsSL --retry 3 -o arte.jpg "$IMAGE_URL"
-
-      - name: Instalar ffmpeg
+      - name: Preparar ambiente
         run: |
           command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+          [ -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ] || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core)
+          pip install --quiet pillow numpy
 
-      - name: Gerar video (ffmpeg)
+      - name: Gerar video
         env:
+          FOTO_URL: ${{ inputs.foto_url }}
+          DESC: ${{ inputs.desc }}
+          PRECO: ${{ inputs.preco }}
           REEL_ID: ${{ inputs.reel_id }}
         run: |
           mkdir -p reels
-          ffmpeg -y -loglevel error -loop 1 -i arte.jpg -f lavfi -i anullsrc=r=44100:cl=stereo -t 8 \
-            -vf "scale=2160:3840,zoompan=z='1+0.0012*on':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=240:s=1080x1920:fps=30,fade=t=in:st=0:d=0.5,fade=t=out:st=7.5:d=0.5,format=yuv420p" \
-            -c:v libx264 -preset veryfast -crf 23 -c:a aac -shortest -movflags +faststart "reels/${REEL_ID}.mp4"
+          python3 scripts/reel.py --foto "$FOTO_URL" \
+            --logo "https://n8n-viumachado.joaquimdaniel.cloud/webhook/vua-img?id=fixo-logo" \
+            --desc "$DESC" --preco "$PRECO" --out "reels/${REEL_ID}.mp4"
 
       - name: Publicar e limpar antigos
         env:
           REEL_ID: ${{ inputs.reel_id }}
         run: |
-          # mantem so os 10 videos mais recentes
           ls -1t reels/*.mp4 | tail -n +11 | xargs -r git rm -q --cached -f || true
           ls -1t reels/*.mp4 | tail -n +11 | xargs -r rm -f
           git config user.name "reel-bot"
