@@ -1,0 +1,83 @@
+<title>Painel Vi Um Achado</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Sora:wght@600;700&display=swap">
+<style>
+/* Layout: cabeçalho, faixa de números do dia, funil de conversão, evolução, posts, Shopee */
+:root{--bg:#F6F7F1;--card:#FFFFFF;--ink:#1A1A4B;--mute:#5C6080;--line:#E2E5D8;--blue:#1596C4;--orange:#E85D0C;--green:#3F9E1F;--greenfill:#7ED957;--red:#D32F4A;--yellow:#B8780A;--f-d:'Sora',system-ui,sans-serif;--f-b:'Figtree',system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11122A;--card:#1A1C3D;--ink:#EEF0FF;--mute:#A3A8CF;--line:#2B2E5A;--blue:#32C8F0;--orange:#FF8A4C;--green:#7ED957;--greenfill:#7ED957;--red:#FF6B83;--yellow:#FAAA14;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11122A;--card:#1A1C3D;--ink:#EEF0FF;--mute:#A3A8CF;--line:#2B2E5A;--blue:#32C8F0;--orange:#FF8A4C;--green:#7ED957;--greenfill:#7ED957;--red:#FF6B83;--yellow:#FAAA14;color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-b);padding-inline:16px;padding-block:20px 40px;line-height:1.45}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:8px;border-bottom:3px solid var(--greenfill);padding-bottom:12px}
+h1{font-family:var(--f-d);font-size:1.6rem;margin:0;text-wrap:balance}
+h2{font-family:var(--f-d);font-size:1.05rem;margin:0 0 10px}
+.sub{color:var(--mute);font-size:.85rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.tile b{display:block;font-family:var(--f-d);font-size:1.7rem;font-variant-numeric:tabular-nums}
+.tile span{color:var(--mute);font-size:.82rem}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.funil{display:flex;flex-direction:column;gap:8px}
+.fl{display:grid;grid-template-columns:minmax(120px,190px) 1fr 70px;align-items:center;gap:10px;font-size:.9rem}
+.fl i{display:block;height:14px;border-radius:2px 7px 7px 2px;background:var(--blue);min-width:2px}
+.fl.m i{background:var(--orange)}
+.fl em{font-style:normal;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.leg{display:flex;gap:14px;flex-wrap:wrap;font-size:.85rem;color:var(--mute);margin-bottom:6px}
+.leg s{display:inline-block;width:12px;height:3px;margin-right:6px;vertical-align:middle;text-decoration:none}
+.sc{overflow-x:auto}
+svg{display:block;width:100%;height:auto;max-width:100%}
+svg text{fill:var(--mute);font-family:var(--f-b);font-size:11px}
+table{border-collapse:collapse;width:100%;font-size:.85rem;min-width:620px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{color:var(--mute);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+a{color:var(--blue)}
+.note{color:var(--mute);font-size:.85rem;margin:8px 0 0}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:.78rem;border:1px solid var(--line)}
+@media (max-width:520px){.fl{grid-template-columns:1fr 60px}.fl i{grid-column:1/3;order:3}}
+</style>
+<div class="wrap">
+<header><div><h1>Painel Vi Um Achado</h1><div class="sub" id="atual"></div></div><div class="sub">@viumachado · Instagram + grupo + Shopee</div></header>
+<div class="grid" id="tiles"></div>
+<section><h2>Do alcance ao grupo</h2><div class="funil" id="funil"></div><p class="note" id="funilnota"></p></section>
+<section><h2>Evolução diária</h2><div class="leg"><span><s style="background:var(--blue)"></s>Alcance</span><span><s style="background:var(--orange)"></s>Visualizações</span><span><s style="background:var(--green)"></s>Cliques no grupo</span></div><div class="sc"><svg id="graf" viewBox="0 0 640 230" role="img" aria-label="Evolução diária de alcance, visualizações e cliques"></svg></div><p class="note" id="grafnota"></p></section>
+<section><h2>Posts recentes</h2><div class="sc"><table id="posts"></table></div></section>
+<section><h2>Shopee</h2><div id="shopee"></div></section>
+<p class="note">Cliques no grupo contam só pessoas (robôs de pré-visualização ficam de fora) e começam a valer quando o link da bio é trocado pelo link de redirecionamento. A entrada efetiva no grupo não tem API: compare o tamanho do grupo com os cliques. A Shopee confirma vendas com alguns dias de atraso.</p>
+</div>
+<script>
+const D={"dias": [{"data": "2026-10-05", "seguidores": 0, "seguindo": 0, "publicacoes": 5, "dia": {"reach": 0, "views": 0, "profile_views": 0, "profile_links_taps": 0, "accounts_engaged": 0, "total_interactions": 0, "likes": 0, "comments": 0, "shares": 0, "saves": 0}, "posts": [{"id": "18127922791865140", "tipo": "FEED/CAROUSEL_ALBUM", "data": "2026-10-05T12:00:56+0000", "link": "https://www.instagram.com/p/DeHKOGfIBbX/", "curtidas": 0, "comentarios": 0, "alcance": 0, "views": 0, "salvos": 0, "compartilhamentos": 0, "interacoes": 0}, {"id": "17872065915636913", "tipo": "FEED/CAROUSEL_ALBUM", "data": "2026-10-04T22:00:50+0000", "link": "https://www.instagram.com/p/DeFqFNfIL_7/", "curtidas": 0, "comentarios": 0, "alcance": 0, "views": 0, "salvos": 0, "compartilhamentos": 0, "interacoes": 0}, {"id": "18104094578123455", "tipo": "FEED/IMAGE", "data": "2026-10-04T20:53:56+0000", "link": "https://www.instagram.com/p/DeFia4-IBl3/", "curtidas": 0, "comentarios": 0, "alcance": 0, "views": 0, "salvos": 0, "compartilhamentos": 0, "interacoes": 0}, {"id": "17910148485540721", "tipo": "FEED/IMAGE", "data": "2026-10-04T16:23:00+0000", "link": "https://www.instagram.com/p/DeFDarfoPxB/", "curtidas": 0, "comentarios": 0, "alcance": 0, "views": 0, "salvos": 0, "compartilhamentos": 0, "interacoes": 0}, {"id": "18337859719279987", "tipo": "FEED/IMAGE", "data": "2026-10-02T01:13:57+0000", "link": "https://www.instagram.com/p/Dd-Rzj9oM7P/", "curtidas": 0, "comentarios": 0, "alcance": 0, "views": 0, "salvos": 0, "compartilhamentos": 0, "interacoes": 0}]}], "cliques": {}, "shopee": {"erro": null, "por_dia": {"2026-09-09": {"conversoes": 1, "comissao": 0}}, "status": {"CANCELLED": 1}}, "atualizado": "2026-10-05T13:43:32.188Z", "publicados": 0, "gerado": "2026-10-05T13:49:56.810Z"};
+const $=id=>document.getElementById(id);
+const n=v=>Number(v||0).toLocaleString('pt-BR');
+const dias=(D.dias||[]).slice();
+const ult=dias[dias.length-1]||{dia:{},posts:[]};
+const cl=D.cliques||{};
+const humanos=Object.keys(cl).reduce((a,k)=>a+(cl[k].total||0),0);
+const hojeK=ult.data;
+const cHoje=(cl[hojeK]||{}).total||0;
+const sh=D.shopee||{por_dia:{},status:{}};
+const shDias=Object.keys(sh.por_dia||{});
+const conv=shDias.reduce((a,k)=>a+sh.por_dia[k].conversoes,0);
+const com=shDias.reduce((a,k)=>a+sh.por_dia[k].comissao,0);
+$('atual').textContent='Atualizado em '+new Date(D.atualizado||D.gerado||Date.now()).toLocaleString('pt-BR',{timeZone:'America/Fortaleza'})+' · '+dias.length+' dia(s) de histórico';
+const tl=[['Seguidores',n(ult.seguidores)],['Alcance no dia',n(ult.dia.reach)],['Visualizações no dia',n(ult.dia.views)],['Toques no link da bio',n(ult.dia.profile_links_taps)],['Cliques no grupo (hoje)',n(cHoje)],['Conversões Shopee (30 d)',n(conv)]];
+$('tiles').innerHTML=tl.map(t=>'<div class="tile"><b>'+t[1]+'</b><span>'+t[0]+'</span></div>').join('');
+const f=[['Alcance',ult.dia.reach,''],['Visitas ao perfil',ult.dia.profile_views,''],['Toques no link da bio',ult.dia.profile_links_taps,''],['Cliques no grupo (nosso link)',cHoje,'m']];
+const mx=Math.max(1,...f.map(x=>x[1]||0));
+$('funil').innerHTML=f.map(x=>'<div class="fl '+x[2]+'"><span>'+x[0]+'</span><i style="width:'+Math.max(0.5,(x[1]||0)/mx*100)+'%"></i><em>'+n(x[1])+'</em></div>').join('');
+$('funilnota').textContent='Dia mais recente ('+(hojeK||'sem dados')+'). Se os toques na bio forem muito maiores que os cliques no grupo, o link de redirecionamento ainda não está na bio.';
+// gráfico
+(function(){const W=640,H=230,L=40,R=12,T=12,B=28;const xs=dias.map(d=>d.data);const a=dias.map(d=>d.dia.reach||0),v=dias.map(d=>d.dia.views||0),c=dias.map(d=>(cl[d.data]||{}).total||0);
+let top=Math.max(5,...a,...v,...c);const nice=[5,10,20,50,100,200,500,1000,2000,5000,10000,50000,100000];top=nice.find(x=>x>=top)||top;
+const px=i=>L+(dias.length<2?(W-L-R)/2:i*(W-L-R)/(dias.length-1)),py=y=>T+(H-T-B)*(1-y/top);
+let s='';for(let k=0;k<=4;k++){const y=top*k/4;s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+py(y)+'" y2="'+py(y)+'" stroke="var(--line)"/><text x="'+(L-6)+'" y="'+(py(y)+4)+'" text-anchor="end">'+n(y)+'</text>';}
+const step=Math.ceil(dias.length/6);xs.forEach((x,i)=>{if(i%step===0||i===dias.length-1)s+='<text x="'+px(i)+'" y="'+(H-8)+'" text-anchor="middle">'+x.slice(8)+'/'+x.slice(5,7)+'</text>';});
+[[a,'var(--blue)','Alcance'],[v,'var(--orange)','Visualizações'],[c,'var(--green)','Cliques no grupo']].forEach(q=>{const pts=q[0].map((y,i)=>px(i)+','+py(y)).join(' ');s+='<polyline fill="none" stroke="'+q[1]+'" stroke-width="2" points="'+pts+'"/>';q[0].forEach((y,i)=>{s+='<circle cx="'+px(i)+'" cy="'+py(y)+'" r="4" fill="'+q[1]+'" stroke="var(--card)" stroke-width="2"><title>'+q[2]+' em '+xs[i]+': '+n(y)+'</title></circle>';});});
+$('graf').innerHTML=s;$('grafnota').textContent=dias.length<3?'Poucos dias de dados ainda: as linhas ganham forma depois de uma ou duas semanas.':'';})();
+// posts
+const pl=(ult.posts||[]).slice(0,12);
+$('posts').innerHTML='<tr><th>Tipo</th><th>Publicado</th><th>Alcance</th><th>Views</th><th>Curtidas</th><th>Salvos</th><th>Compart.</th></tr>'+(pl.length?pl.map(p=>{const t=p.tipo.indexOf('CAROUSEL')>-1?'Carrossel':p.tipo.indexOf('REELS')>-1?'Reel':'Imagem';const d=new Date(p.data).toLocaleString('pt-BR',{timeZone:'America/Fortaleza',day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});return '<tr><td><a href="'+p.link+'" target="_blank" rel="noopener">'+t+'</a></td><td>'+d+'</td><td>'+n(p.alcance)+'</td><td>'+n(p.views)+'</td><td>'+n(p.curtidas)+'</td><td>'+n(p.salvos)+'</td><td>'+n(p.compartilhamentos)+'</td></tr>'}).join(''):'<tr><td colspan="7">Sem posts no histórico.</td></tr>');
+// shopee
+const nomes={COMPLETED:'Concluídas',PENDING:'Pendentes',CANCELLED:'Canceladas',UNPAID:'Não pagas'};
+const st=Object.keys(sh.status||{});
+$('shopee').innerHTML=sh.erro?'<p class="note">Erro ao ler a Shopee: '+sh.erro+'</p>':'<div class="grid"><div class="tile"><b>'+n(conv)+'</b><span>conversões nos últimos 30 dias</span></div><div class="tile"><b>R$ '+com.toFixed(2).replace('.',',')+'</b><span>comissão líquida</span></div>'+st.map(k=>'<div class="tile"><b>'+n(sh.status[k])+'</b><span>'+(nomes[k]||k)+'</span></div>').join('')+'</div><p class="note">Os pedidos vêm dos links publicados no grupo de WhatsApp. As postagens do Instagram não levam link de produto.</p>';
+</script>
