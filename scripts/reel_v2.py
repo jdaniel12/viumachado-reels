@@ -26,6 +26,8 @@ ID_OK = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 AQUI = os.path.dirname(os.path.abspath(__file__))
 FONTE = os.path.join(AQUI, "..", "assets", "fonts", "Fredoka.ttf")
+LOGO = os.path.join(AQUI, "..", "assets", "logo.png")
+LOGO_ALT, LOGO_POS = 170, (36, 64)  # canto de cima a esquerda, fora dos botoes do Instagram
 
 
 def falhar(msg):
@@ -152,6 +154,16 @@ def entrar(t, ini, dur=0.25):  # escala com leve "salto" quando o texto aparece
     return 1 + (s + 1) * x ** 3 + s * x ** 2
 
 
+def selo_logo():
+    """Logo do @viumachado num cartao branco arredondado, presente o video inteiro."""
+    if not os.path.exists(LOGO): return None
+    lg = Image.open(LOGO).convert("RGB"); lw = int(lg.width * LOGO_ALT / lg.height)
+    lg = lg.resize((lw, LOGO_ALT), Image.LANCZOS); pad = 12
+    im = Image.new("RGBA", (lw + 2 * pad, LOGO_ALT + 2 * pad), (0, 0, 0, 0))
+    ImageDraw.Draw(im).rounded_rectangle((0, 0, im.width - 1, im.height - 1), 28, fill=WHITE + (240,))
+    im.paste(lg, (pad, pad)); return im
+
+
 # ---------- cenas ----------
 RECORTES = [(0, 0, 1, 1), (0.1, 0, 0.9, 0.62), (0.1, 0.38, 0.9, 1), (0.18, 0.18, 0.82, 0.82)]
 
@@ -208,6 +220,7 @@ def textos_fixos(d, lay):
         "preco": caixa(preco, 66, lay["preco_fundo"], NAVY if lay["preco_fundo"] == YELLOW else WHITE, 1) if preco else None,
         "off": caixa(f"{d['desconto']}% OFF", 84, lay["off_fundo"], WHITE, 1) if d["desconto"] > 0 else None,
         "cta": caixa(d["cta"], 74, lay["cta_fundo"], WHITE, 3),
+        "logo": selo_logo(),
     }
 
 
@@ -229,6 +242,7 @@ def desenhar(t, cena, tx, tempos, blocos, lay, cache):
                 chave = (bi, atual)
                 if chave not in cache: cache[chave] = legenda([p["texto"] for p in b["palavras"]], atual, lay["destaque"])
                 colar(f, cache[chave], W / 2, lay["legenda_y"]); break
+    if tx["logo"]: f.alpha_composite(tx["logo"], LOGO_POS)
     return f.convert("RGB")
 
 
