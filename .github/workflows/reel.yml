@@ -1,20 +1,29 @@
 name: Gerar Reel
+run-name: "Reel ${{ inputs.versao || 'v1' }} ${{ inputs.reel_id }}"
 
 on:
   workflow_dispatch:
     inputs:
-      foto_url:
-        description: "URL publica da foto do produto"
-        required: true
-      desc:
-        description: "Texto do desconto (ex: 72% OFF)"
-        required: true
-      preco:
-        description: "Texto do preco (ex: R$ 54,99)"
-        required: true
       reel_id:
         description: "Identificador do Reel (arquivo reels/<id>.mp4)"
         required: true
+      versao:
+        description: "v1 = Reel atual com moldura; v2 = tela cheia com narracao"
+        type: choice
+        options: [v1, v2]
+        default: v1
+      payload:
+        description: "So v2: JSON em base64 (imagens, gancho, roteiro, cta, precos, layout...)"
+        required: false
+      foto_url:
+        description: "So v1: URL publica da foto do produto"
+        required: false
+      desc:
+        description: "So v1: texto do desconto (ex: 72% OFF)"
+        required: false
+      preco:
+        description: "So v1: texto do preco (ex: R$ 54,99)"
+        required: false
 
 permissions:
   contents: write
@@ -28,14 +37,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 60  # historico suficiente para ordenar os 20 Reels mais recentes
 
       - name: Preparar ambiente
+        env:
+          VERSAO: ${{ inputs.versao || 'v1' }}
         run: |
           command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
           [ -f /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf ] || (sudo apt-get update -qq && sudo apt-get install -y -qq fonts-dejavu-core)
           pip install --quiet pillow numpy
+          if [ "$VERSAO" = "v2" ]; then pip install --quiet "edge-tts==7.3.1"; fi
 
-      - name: Gerar video
+      - name: Gerar video v1
+        if: (inputs.versao || 'v1') == 'v1'
         env:
           FOTO_URL: ${{ inputs.foto_url }}
           DESC: ${{ inputs.desc }}
@@ -47,15 +62,28 @@ jobs:
             --logo "https://n8n-viumachado.joaquimdaniel.cloud/webhook/vua-img?id=fixo-logo" \
             --desc "$DESC" --preco "$PRECO" --out "reels/${REEL_ID}.mp4"
 
+      - name: Gerar video v2
+        if: inputs.versao == 'v2'
+        env:
+          REEL_ID: ${{ inputs.reel_id }}
+          PAYLOAD_B64: ${{ inputs.payload }}
+        run: python3 scripts/reel_v2.py
+
       - name: Publicar e limpar antigos
         env:
           REEL_ID: ${{ inputs.reel_id }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          ls -1t reels/*.mp4 | tail -n +11 | xargs -r git rm -q --cached -f || true
-          ls -1t reels/*.mp4 | tail -n +11 | xargs -r rm -f
+          # mantem os 20 Reels mais recentes (pela data do commit; o novo ainda nao tem commit e fica no topo)
+          for f in reels/*.mp4; do echo "$(git log -1 --format=%ct -- "$f" 2>/dev/null || true) $f"; done \
+            | awk '{ if (NF == 1) print 9999999999, $1; else print }' | sort -rn | tail -n +21 | cut -d' ' -f2 \
+            | while read -r velho; do base="${velho%.mp4}"; git rm -q --ignore-unmatch -f "$base.mp4" "$base.jpg" "$base.json" || true; done
           git config user.name "reel-bot"
           git config user.email "reel-bot@users.noreply.github.com"
           git add -A reels
           git commit -m "Reel ${REEL_ID}" || exit 0
-          git pull --rebase origin main
-          git push origin HEAD:main
+          for i in 1 2 3; do
+            git pull --rebase origin "$BRANCH" && git push origin "HEAD:$BRANCH" && exit 0
+            sleep 5
+          done
+          exit 1
